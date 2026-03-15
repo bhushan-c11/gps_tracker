@@ -1,0 +1,22 @@
+{
+  "name": "gps-tracker",
+  "version": "1.0.0",
+  "description": "Real-time GPS Trail Analysis System",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "simulate": "node gps-simulator.js",
+    "dev": "nodemon server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "socket.io": "^4.7.2",
+    "pg": "^8.11.3",
+    "nmea-simple": "^3.2.2",
+    "cors": "^2.8.5",
+    "dotenv": "^16.3.1"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.2"
+  }
+}

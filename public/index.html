@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>GPS Trail Tracker — Live</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family: system-ui, sans-serif; background:#0f1117; color:#e0e0e0; height:100vh; display:flex; flex-direction:column; overflow:hidden; }
+  header { background:#161b27; border-bottom:1px solid #2a3040; padding:10px 16px; display:flex; align-items:center; gap:12px; flex-shrink:0; }
+  header h1 { font-size:16px; font-weight:600; color:#fff; }
+  .live-badge { background:#1a472a; color:#4ade80; font-size:11px; padding:2px 8px; border-radius:999px; border:1px solid #2d6a4f; display:flex; align-items:center; gap:4px; }
+  .live-dot { width:7px; height:7px; border-radius:50%; background:#4ade80; animation:pulse 1.5s ease-in-out infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+  .stat-pill { background:#1e2535; border:1px solid #2a3040; border-radius:6px; padding:4px 10px; font-size:12px; color:#94a3b8; }
+  .stat-pill span { color:#fff; font-weight:600; }
+  header .spacer { flex:1; }
+  .clear-btn { background:#1e2535; border:1px solid #2a3040; color:#94a3b8; padding:5px 12px; border-radius:6px; cursor:pointer; font-size:12px; }
+  .clear-btn:hover { border-color:#4f6a8a; color:#e0e0e0; }
+  .demo-bar { background:#0d1520; border-bottom:1px solid #1e3a5f; padding:10px 16px; display:flex; align-items:flex-end; gap:10px; flex-shrink:0; flex-wrap:wrap; }
+  .bar-label { font-size:11px; font-weight:600; color:#378ADD; text-transform:uppercase; letter-spacing:.5px; white-space:nowrap; padding-bottom:4px; }
+  .input-group { display:flex; flex-direction:column; gap:3px; }
+  .input-group label { font-size:10px; color:#64748b; }
+  .demo-input { background:#1e2535; border:1px solid #2a3040; color:#fff; padding:6px 10px; border-radius:6px; font-size:13px; outline:none; transition:border-color .2s; }
+  .demo-input:focus { border-color:#378ADD; }
+  .demo-input::placeholder { color:#4b5563; }
+  .btn-send { background:#378ADD; color:#fff; border:none; padding:8px 18px; border-radius:6px; cursor:pointer; font-size:13px; font-weight:600; transition:filter .2s; white-space:nowrap; }
+  .btn-send:hover { filter:brightness(1.15); }
+  .btn-send:active { transform:scale(0.97); }
+  .send-status { font-size:12px; padding:4px 10px; border-radius:6px; opacity:0; transition:opacity .2s; white-space:nowrap; }
+  .send-status.show-ok  { background:#14532d; color:#4ade80; opacity:1; }
+  .send-status.show-err { background:#450a0a; color:#fca5a5; opacity:1; }
+  .divider { width:1px; background:#2a3040; height:36px; align-self:flex-end; margin:0 4px; }
+  .presets { display:flex; gap:6px; align-items:flex-end; flex-wrap:wrap; }
+  .preset-label { font-size:10px; color:#64748b; padding-bottom:6px; }
+  .btn-preset { background:#1e2535; border:1px solid #2a3040; color:#94a3b8; padding:6px 12px; border-radius:6px; cursor:pointer; font-size:12px; transition:all .15s; white-space:nowrap; }
+  .btn-preset:hover { border-color:#378ADD; color:#60a5fa; }
+  .main { display:flex; flex:1; overflow:hidden; }
+  #map { flex:1; background:#1a1f2e; }
+  .sidebar { width:320px; background:#161b27; border-left:1px solid #2a3040; display:flex; flex-direction:column; overflow:hidden; flex-shrink:0; }
+  .tabs { display:flex; border-bottom:1px solid #2a3040; }
+  .tab { flex:1; padding:10px; font-size:12px; color:#64748b; cursor:pointer; text-align:center; border-bottom:2px solid transparent; }
+  .tab.active { color:#60a5fa; border-bottom-color:#60a5fa; }
+  .panel { flex:1; overflow-y:auto; padding:12px; display:none; }
+  .panel.active { display:block; }
+  .device-card { background:#1e2535; border:1px solid #2a3040; border-radius:8px; padding:12px; margin-bottom:8px; cursor:pointer; transition:border-color .2s; }
+  .device-card:hover,.device-card.selected { border-color:#60a5fa; }
+  .device-card .d-header { display:flex; align-items:center; gap:8px; margin-bottom:6px; }
+  .device-dot { width:10px; height:10px; border-radius:50%; flex-shrink:0; }
+  .device-name { font-weight:600; font-size:13px; color:#fff; flex:1; }
+  .device-badge { font-size:10px; padding:1px 6px; border-radius:999px; font-weight:600; }
+  .badge-fast { background:#3b0764; color:#d8b4fe; border:1px solid #6d28d9; }
+  .badge-normal { background:#14532d; color:#86efac; border:1px solid #166534; }
+  .badge-slow { background:#451a03; color:#fcd34d; border:1px solid #78350f; }
+  .badge-stationary { background:#450a0a; color:#fca5a5; border:1px solid #991b1b; }
+  .device-meta { display:grid; grid-template-columns:1fr 1fr; gap:4px; font-size:11px; color:#64748b; }
+  .device-meta .val { color:#cbd5e1; font-weight:500; }
+  .alert-card { border-radius:7px; padding:10px 12px; margin-bottom:8px; border-left:3px solid; }
+  .alert-card.danger  { background:#1f0a0a; border-color:#ef4444; }
+  .alert-card.warning { background:#1a1200; border-color:#eab308; }
+  .alert-card.info    { background:#0a1523; border-color:#3b82f6; }
+  .alert-card .a-type { font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.5px; margin-bottom:3px; }
+  .alert-card.danger  .a-type { color:#ef4444; }
+  .alert-card.warning .a-type { color:#eab308; }
+  .alert-card.info    .a-type { color:#3b82f6; }
+  .alert-card .a-msg  { font-size:12px; color:#d1d5db; }
+  .alert-card .a-time { font-size:10px; color:#4b5563; margin-top:3px; }
+  .insight-block { background:#1e2535; border:1px solid #2a3040; border-radius:8px; padding:12px; margin-bottom:8px; }
+  .insight-block h3 { font-size:12px; color:#94a3b8; margin-bottom:8px; text-transform:uppercase; letter-spacing:.5px; }
+  .insight-row { display:flex; align-items:center; justify-content:space-between; font-size:12px; color:#cbd5e1; margin-bottom:4px; }
+  .insight-row .val { color:#fff; font-weight:600; }
+  .speed-bar-wrap { background:#0f1117; border-radius:4px; height:6px; flex:1; margin:0 8px; overflow:hidden; }
+  .speed-bar { height:100%; border-radius:4px; transition:width .5s; }
+  #toast-container { position:fixed; top:60px; right:16px; z-index:9999; display:flex; flex-direction:column; gap:8px; pointer-events:none; }
+  .toast { background:#1e2535; border:1px solid; border-radius:8px; padding:12px 14px; max-width:300px; animation:slideIn .3s ease; pointer-events:auto; }
+  .toast.danger  { border-color:#ef4444; }
+  .toast.warning { border-color:#eab308; }
+  @keyframes slideIn { from{transform:translateX(120%);opacity:0} to{transform:translateX(0);opacity:1} }
+  @keyframes slideOut { from{transform:translateX(0);opacity:1} to{transform:translateX(120%);opacity:0} }
+  .toast-type { font-size:10px; font-weight:700; text-transform:uppercase; }
+  .toast.danger  .toast-type { color:#ef4444; }
+  .toast.warning .toast-type { color:#eab308; }
+  .toast-msg { font-size:12px; color:#d1d5db; margin-top:3px; }
+  ::-webkit-scrollbar { width:4px; }
+  ::-webkit-scrollbar-track { background:transparent; }
+  ::-webkit-scrollbar-thumb { background:#2a3040; border-radius:2px; }
+  .empty-state { text-align:center; color:#374151; padding:32px 16px; font-size:13px; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>&#128752; GPS Trail Tracker</h1>
+  <div class="live-badge"><div class="live-dot"></div>LIVE</div>
+  <div class="stat-pill">Devices: <span id="stat-devices">0</span></div>
+  <div class="stat-pill">Alerts: <span id="stat-alerts">0</span></div>
+  <div class="stat-pill">Avg Speed: <span id="stat-speed">0</span> km/h</div>
+  <div class="spacer"></div>
+  <button class="clear-btn" onclick="clearTrails()">Clear Trails</button>
+</header>
+
+<div class="demo-bar">
+  <span class="bar-label">Live Input</span>
+  <div class="input-group">
+    <label>Device ID</label>
+    <input class="demo-input" id="m-id" placeholder="truck_01" style="width:100px"/>
+  </div>
+  <div class="input-group">
+    <label>Latitude</label>
+    <input class="demo-input" id="m-lat" placeholder="13.0827" style="width:110px"/>
+  </div>
+  <div class="input-group">
+    <label>Longitude</label>
+    <input class="demo-input" id="m-lon" placeholder="80.2707" style="width:110px"/>
+  </div>
+  <div class="input-group">
+    <label>Speed (km/h)</label>
+    <input class="demo-input" id="m-spd" placeholder="45" style="width:80px"/>
+  </div>
+  <button class="btn-send" onclick="sendManual()">Send Point</button>
+  <button class="btn-send" id="btn-move" onclick="toggleMove()" style="background:#1D9E75;">Start Moving</button>
+  <span class="send-status" id="m-status"></span>
+  <div class="divider"></div>
+  <div class="presets">
+    <span class="preset-label">Presets:</span>
+    <button class="btn-preset" onclick="loadPreset('normal')"     title="Normal 35 km/h">Normal</button>
+    <button class="btn-preset" onclick="loadPreset('fast')"       title="95 km/h speed alert">Fast Speed</button>
+    <button class="btn-preset" onclick="loadPreset('stationary')" title="Speed 0 stationary alert">Stationary</button>
+    <button class="btn-preset" onclick="loadPreset('zone')"       title="Inside geofence zone">Enter Zone</button>
+  </div>
+</div>
+
+<div class="main">
+  <div id="map"></div>
+  <div class="sidebar">
+    <div class="tabs">
+      <div class="tab active" onclick="switchTab('devices',this)">Devices</div>
+      <div class="tab" onclick="switchTab('alerts',this)">Alerts</div>
+      <div class="tab" onclick="switchTab('insights',this)">Insights</div>
+    </div>
+    <div id="panel-devices" class="panel active"></div>
+    <div id="panel-alerts" class="panel"><div class="empty-state">No alerts yet</div></div>
+    <div id="panel-insights" class="panel">
+      <div class="insight-block">
+        <h3>Fleet Overview</h3>
+        <div class="insight-row"><span>Total devices</span><span class="val" id="ins-total">0</span></div>
+        <div class="insight-row"><span>Active (&lt;10s)</span><span class="val" id="ins-active">0</span></div>
+        <div class="insight-row"><span>Stationary</span><span class="val" id="ins-stationary">0</span></div>
+        <div class="insight-row"><span>Fast moving</span><span class="val" id="ins-fast">0</span></div>
+      </div>
+      <div class="insight-block">
+        <h3>Device Speeds</h3>
+        <div id="ins-speeds"></div>
+      </div>
+      <div class="insight-block">
+        <h3>Alert Summary</h3>
+        <div class="insight-row"><span>Geofence</span><span class="val" id="ins-geofence">0</span></div>
+        <div class="insight-row"><span>Speed</span><span class="val" id="ins-speedcount">0</span></div>
+        <div class="insight-row"><span>Stationary</span><span class="val" id="ins-statcount">0</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="toast-container"></div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="/socket.io/socket.io.js"></script>
+<script>
+const map = L.map('map',{zoomControl:true,attributionControl:false}).setView([13.0827,80.2707],13);
+L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{subdomains:'abcd',maxZoom:20}).addTo(map);
+
+const devices={}, alertLog=[], alertCounts={geofence:0,fast:0,stationary:0};
+const COLORS=['#60a5fa','#f87171','#4ade80','#fbbf24','#a78bfa','#f472b6','#34d399','#fb923c'];
+let colorIndex=0, selectedDevice=null, isMoving=false;
+function nextColor(){ return COLORS[colorIndex++%COLORS.length]; }
+
+function makeIcon(color,label){
+  return L.divIcon({className:'',
+    html:'<div style="background:'+color+';border:2px solid #fff;border-radius:50% 50% 50% 0;width:22px;height:22px;transform:rotate(-45deg);display:flex;align-items:center;justify-content:center;box-shadow:0 2px 6px rgba(0,0,0,.5)"><span style="transform:rotate(45deg);font-size:9px;color:#fff;font-weight:700;">'+label+'</span></div>',
+    iconSize:[22,22],iconAnchor:[11,22],popupAnchor:[0,-24]});
+}
+
+// ── SEND MANUAL POINT ───────────────────────────────────────────────────────
+async function sendManual(){
+  var deviceId=document.getElementById('m-id').value.trim()||'demo_device';
+  var lat=parseFloat(document.getElementById('m-lat').value);
+  var lon=parseFloat(document.getElementById('m-lon').value);
+  var speed=parseFloat(document.getElementById('m-spd').value)||0;
+  var st=document.getElementById('m-status');
+  if(isNaN(lat)||isNaN(lon)){
+    st.textContent='Enter valid lat/lon!'; st.className='send-status show-err';
+    setTimeout(function(){st.className='send-status';},2500); return;
+  }
+  try{
+    await fetch('/api/manual',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({deviceId,lat,lon,speed,heading:0})});
+    map.setView([lat,lon],14);
+    st.textContent='Point sent!'; st.className='send-status show-ok';
+  }catch(e){
+    st.textContent='Server error!'; st.className='send-status show-err';
+  }
+  setTimeout(function(){st.className='send-status';},2000);
+}
+
+// ── RANDOM MOVEMENT TOGGLE ──────────────────────────────────────────────────
+async function toggleMove(){
+  var deviceId=document.getElementById('m-id').value.trim()||'demo_device';
+  var lat=parseFloat(document.getElementById('m-lat').value);
+  var lon=parseFloat(document.getElementById('m-lon').value);
+  var speed=parseFloat(document.getElementById('m-spd').value)||40;
+  var btn=document.getElementById('btn-move');
+  var st=document.getElementById('m-status');
+
+  if(!isMoving){
+    if(isNaN(lat)||isNaN(lon)){
+      st.textContent='Enter lat/lon first!'; st.className='send-status show-err';
+      setTimeout(function(){st.className='send-status';},2500); return;
+    }
+    try{
+      await fetch('/api/start-random',{method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({deviceId,lat,lon,speed})});
+      isMoving=true;
+      btn.textContent='Stop Moving'; btn.style.background='#e74c3c';
+      st.textContent=deviceId+' is moving!'; st.className='send-status show-ok';
+      setTimeout(function(){st.className='send-status';},2500);
+    }catch(e){
+      st.textContent='Server error!'; st.className='send-status show-err';
+      setTimeout(function(){st.className='send-status';},2000);
+    }
+  } else {
+    try{
+      await fetch('/api/stop-random',{method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({deviceId})});
+    }catch(e){}
+    isMoving=false;
+    btn.textContent='Start Moving'; btn.style.background='#1D9E75';
+    st.textContent='Stopped.'; st.className='send-status show-ok';
+    setTimeout(function(){st.className='send-status';},1500);
+  }
+}
+
+// ── PRESETS ─────────────────────────────────────────────────────────────────
+var PRESETS={
+  normal:    {deviceId:'demo_device',lat:13.0827,lon:80.2707,speed:35},
+  fast:      {deviceId:'demo_device',lat:13.0900,lon:80.2800,speed:95},
+  stationary:{deviceId:'demo_device',lat:13.0750,lon:80.2650,speed:0},
+  zone:      {deviceId:'demo_device',lat:13.0827,lon:80.2707,speed:20},
+};
+function loadPreset(type){
+  var p=PRESETS[type];
+  document.getElementById('m-id').value=p.deviceId;
+  document.getElementById('m-lat').value=p.lat;
+  document.getElementById('m-lon').value=p.lon;
+  document.getElementById('m-spd').value=p.speed;
+  var st=document.getElementById('m-status');
+  st.textContent=type+' loaded — press Send Point or Start Moving';
+  st.className='send-status show-ok';
+  setTimeout(function(){st.className='send-status';},2500);
+}
+
+// Enter key sends point when focused on input fields
+document.addEventListener('keydown',function(e){
+  if(e.key==='Enter'&&['m-id','m-lat','m-lon','m-spd'].indexOf(document.activeElement.id)!==-1) sendManual();
+});
+
+// ── GPS HANDLERS ─────────────────────────────────────────────────────────────
+function handlePosition(data) {
+  var id=data.deviceId, lat=data.lat, lon=data.lon,
+      speed=data.speed, heading=data.heading,
+      name=data.name, movement=data.movement, ts=data.timestamp;
+
+  if(!devices[id]){
+    var c=nextColor();
+    devices[id]={color:c,data:{},
+      marker:L.marker([lat,lon],{icon:makeIcon(c,id.slice(-2))}).addTo(map),
+      polyline:L.polyline([],{color:c,weight:2.5,opacity:0.75}).addTo(map)};
+  }
+  var d=devices[id];
+  d.data={lat:lat,lon:lon,speed:speed,heading:heading,name:name||id,movement:movement,timestamp:ts};
+  d.marker.setLatLng([lat,lon]);
+  d.marker.bindTooltip('<b>'+(name||id)+'</b><br>'+(speed||0).toFixed(1)+' km/h');
+  d.polyline.addLatLng([lat,lon]);
+  if(selectedDevice===id) map.panTo([lat,lon]);
+
+  // ── UPDATE INPUT FIELDS if this is the active moving device ──
+  var currentId = document.getElementById('m-id').value.trim() || 'demo_device';
+  if(id === currentId && isMoving){
+    document.getElementById('m-lat').value = lat.toFixed(6);
+    document.getElementById('m-lon').value = lon.toFixed(6);
+    document.getElementById('m-spd').value = Math.round(speed);
+  }
+
+  renderDevicePanel(); renderInsights(); updateStats();
+}
+function handleAlert(alert){
+  alertLog.unshift(alert);
+  if(alertLog.length>100) alertLog.pop();
+  if(alert.type==='geofence') alertCounts.geofence++;
+  else if(alert.type==='fast') alertCounts.fast++;
+  else if(alert.type==='stationary') alertCounts.stationary++;
+  renderAlertPanel(); showToast(alert);
+  document.getElementById('stat-alerts').textContent=alertLog.length;
+}
+
+function handleSnapshot(snapshot){
+  for(var i=0;i<snapshot.length;i++){
+    var d=snapshot[i],c=nextColor();
+    devices[d.deviceId]={color:c,data:d,
+      marker:L.marker([d.lat,d.lon],{icon:makeIcon(c,d.deviceId.slice(-2))}).addTo(map),
+      polyline:L.polyline((d.trail||[]).map(function(p){return[p.lat,p.lon];}),{color:c,weight:2.5,opacity:0.75}).addTo(map)};
+    devices[d.deviceId].data=Object.assign({},d,{movement:{label:'Normal'}});
+  }
+  if(snapshot.length>0) map.setView([snapshot[0].lat,snapshot[0].lon],13);
+  renderDevicePanel(); renderInsights(); updateStats();
+}
+
+async function loadGeofences(){
+  try{
+    var res=await fetch('/api/geofences'), zones=await res.json();
+    for(var i=0;i<zones.length;i++){
+      var z=zones[i];
+      if(z.type==='circle') L.circle([z.lat,z.lon],{radius:z.radiusKm*1000,color:z.color||'#e74c3c',fillColor:z.color||'#e74c3c',fillOpacity:0.08,weight:2,dashArray:'6 4'}).addTo(map).bindTooltip(z.name);
+      else if(z.type==='polygon') L.polygon(z.coords,{color:z.color||'#3498db',fillColor:z.color||'#3498db',fillOpacity:0.08,weight:2,dashArray:'6 4'}).addTo(map).bindTooltip(z.name);
+    }
+  }catch(e){}
+}
+
+function getBadgeClass(l){ return{Fast:'badge-fast',Slow:'badge-slow',Stationary:'badge-stationary'}[l]||'badge-normal'; }
+
+function renderDevicePanel(){
+  var panel=document.getElementById('panel-devices'), ids=Object.keys(devices);
+  if(ids.length===0){panel.innerHTML='<div class="empty-state">Waiting for GPS data...<br><br>Use the Live Input bar above<br>or run the simulator</div>';return;}
+  panel.innerHTML=ids.map(function(id){
+    var d=devices[id], ml=d.data.movement&&d.data.movement.label||'Normal';
+    return '<div class="device-card '+(selectedDevice===id?'selected':'')+'" onclick="selectDevice(\''+id+'\')">'+
+      '<div class="d-header"><div class="device-dot" style="background:'+d.color+'"></div>'+
+      '<span class="device-name">'+(d.data.name||id)+'</span>'+
+      '<span class="device-badge '+getBadgeClass(ml)+'">'+ml+'</span></div>'+
+      '<div class="device-meta">'+
+      '<span>Speed</span><span class="val">'+(d.data.speed||0).toFixed(1)+' km/h</span>'+
+      '<span>Heading</span><span class="val">'+(d.data.heading||0).toFixed(0)+' deg</span>'+
+      '<span>Lat</span><span class="val">'+(d.data.lat||0).toFixed(5)+'</span>'+
+      '<span>Lon</span><span class="val">'+(d.data.lon||0).toFixed(5)+'</span>'+
+      '<span>Updated</span><span class="val">'+(d.data.timestamp?new Date(d.data.timestamp).toLocaleTimeString():'-')+'</span>'+
+      '</div></div>';
+  }).join('');
+}
+
+function renderAlertPanel(){
+  var panel=document.getElementById('panel-alerts');
+  if(alertLog.length===0){panel.innerHTML='<div class="empty-state">No alerts yet</div>';return;}
+  var lb={geofence:'Geofence Violation',fast:'Speed Alert',stationary:'Stationary Alert'};
+  panel.innerHTML=alertLog.slice(0,30).map(function(a){
+    return '<div class="alert-card '+(a.severity||'info')+'">'+
+      '<div class="a-type">'+(lb[a.type]||a.type)+'</div>'+
+      '<div class="a-msg">'+a.message+'</div>'+
+      '<div class="a-time">'+new Date(a.timestamp).toLocaleTimeString()+'</div></div>';
+  }).join('');
+}
+
+function renderInsights(){
+  var dl=Object.values(devices), now=Date.now();
+  document.getElementById('ins-total').textContent=dl.length;
+  document.getElementById('ins-active').textContent=dl.filter(function(d){return d.data.timestamp&&now-new Date(d.data.timestamp).getTime()<10000;}).length;
+  document.getElementById('ins-stationary').textContent=dl.filter(function(d){return(d.data.speed||0)<1;}).length;
+  document.getElementById('ins-fast').textContent=dl.filter(function(d){return(d.data.speed||0)>80;}).length;
+  document.getElementById('ins-geofence').textContent=alertCounts.geofence;
+  document.getElementById('ins-speedcount').textContent=alertCounts.fast;
+  document.getElementById('ins-statcount').textContent=alertCounts.stationary;
+  var ms=Math.max.apply(null,dl.map(function(d){return d.data.speed||0;}).concat([1]));
+  document.getElementById('ins-speeds').innerHTML=Object.entries(devices).map(function(e){
+    var id=e[0],d=e[1];
+    return '<div class="insight-row"><span style="color:'+d.color+';min-width:80px;overflow:hidden;text-overflow:ellipsis">'+(d.data.name||id)+'</span>'+
+      '<div class="speed-bar-wrap"><div class="speed-bar" style="width:'+Math.min(100,(d.data.speed||0)/ms*100)+'%;background:'+d.color+'"></div></div>'+
+      '<span class="val">'+(d.data.speed||0).toFixed(0)+'</span></div>';
+  }).join('');
+}
+
+function updateStats(){
+  var dl=Object.values(devices);
+  document.getElementById('stat-devices').textContent=dl.length;
+  var avg=dl.reduce(function(s,d){return s+(d.data.speed||0);},0)/Math.max(dl.length,1);
+  document.getElementById('stat-speed').textContent=avg.toFixed(1);
+}
+
+function showToast(alert){
+  var c=document.getElementById('toast-container'), t=document.createElement('div');
+  t.className='toast '+(alert.severity||'info');
+  t.innerHTML='<div class="toast-type">'+alert.type.toUpperCase()+'</div><div class="toast-msg">'+alert.message+'</div>';
+  c.prepend(t);
+  setTimeout(function(){t.style.animation='slideOut .3s ease forwards';setTimeout(function(){t.remove();},300);},5000);
+}
+
+function switchTab(name,el){
+  document.querySelectorAll('.tab').forEach(function(t){t.classList.remove('active');});
+  document.querySelectorAll('.panel').forEach(function(p){p.classList.remove('active');});
+  el.classList.add('active');
+  document.getElementById('panel-'+name).classList.add('active');
+}
+
+function selectDevice(id){
+  selectedDevice=id;
+  var d=devices[id];
+  if(d&&d.data&&d.data.lat) map.setView([d.data.lat,d.data.lon],15);
+  renderDevicePanel();
+}
+
+function clearTrails(){
+  Object.values(devices).forEach(function(d){d.polyline.setLatLngs([]);});
+}
+
+var socket=io();
+socket.on('snapshot',handleSnapshot);
+socket.on('position',handlePosition);
+socket.on('alert',function(alert){
+  handleAlert(alert);
+  switchTab('alerts',document.querySelectorAll('.tab')[1]);
+});
+
+loadGeofences();
+</script>
+</body>
+</html>

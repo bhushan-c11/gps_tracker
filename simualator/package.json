@@ -1,0 +1,15 @@
+{
+  "name": "simualator",
+  "version": "1.0.0",
+  "main": "gps-simulator.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "dependencies": {
+    "dotenv": "^17.3.1"
+  }
+}
