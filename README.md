@@ -1,20 +1,15 @@
-Got it — you want **ONE single copy-pasteable block**. No splits. No breaks. Clean, senior-level README.
-
-Here it is:
-
-````markdown
 <div align="center">
 
-# ⬛ Project Macrodata
+# 📍 GPS Trail Tracker
 
-**An Air-Gapped Macrodata Refinement (MDR) Pipeline & Knowledge System**
+**A Real-Time Location Tracking & Simulation System**
 
-[![Status: Production Ready](https://img.shields.io/badge/Status-Production_Ready-green.svg)]()
-[![Environment: Severed / Offline](https://img.shields.io/badge/Environment-Severed_%2F_100%25_Offline-blue.svg)]()
-[![Model: Local LLM](https://img.shields.io/badge/Model-Local_LLM-purple.svg)]()
-[![Stack: FastAPI | React | Electron](https://img.shields.io/badge/Stack-FastAPI_%7C_React_%7C_Electron-gray.svg)]()
+[![Status: Active](https://img.shields.io/badge/Status-Active-success.svg)]()
+[![Backend](https://img.shields.io/badge/Backend-Node.js-blue.svg)]()
+[![Database](https://img.shields.io/badge/Database-MongoDB-green.svg)]()
+[![API](https://img.shields.io/badge/API-REST-orange.svg)]()
 
-A privacy-first, fully offline AI system that ingests unstructured data, refines it into structured knowledge, and enables high-precision retrieval using Advanced RAG — all without any cloud dependency.
+A lightweight backend system that captures, stores, and serves GPS location data with support for simulated real-time tracking.
 
 </div>
 
@@ -22,29 +17,28 @@ A privacy-first, fully offline AI system that ingests unstructured data, refines
 
 ## 📌 Executive Summary
 
-Project Macrodata is designed for **zero-trust environments** where data cannot leave local infrastructure.
+GPS Trail Tracker is designed to simulate and manage real-world location tracking systems.
 
-It implements an **MDR (Macrodata Refinement) pipeline**:
-- Converts raw documents → structured embeddings
-- Stores them in a local vector space
-- Uses a local LLM for grounded, verifiable responses
+It provides a backend pipeline that:
+- Accepts GPS coordinates from devices or simulators
+- Stores them efficiently in a database
+- Exposes APIs for retrieval and analysis
 
 This ensures:
-- No external API calls
-- No data leakage
-- Controlled, explainable AI outputs
+- Reliable location data storage
+- Simple integration with frontend or mobile apps
+- Scalable backend design for tracking systems
 
 ---
 
 ## 🧠 Core Capabilities
 
-- 📂 Offline document ingestion (PDF, TXT, JSON)
-- 🧩 Semantic chunking with contextual boundaries
-- 🔍 Hybrid retrieval (vector + keyword search)
-- 🧠 Local LLM inference (no internet required)
-- 📊 Source-grounded answers (hallucination control)
-- 🖥 Desktop application (Electron-based UI)
-- 🔐 Full data sovereignty
+- 📍 Real-time GPS data ingestion
+- 🗂️ Historical location tracking
+- 🔌 REST API for data access
+- 🧪 Built-in GPS simulator for testing
+- ⚡ Lightweight backend architecture
+- 📊 Time-based location queries
 
 ---
 
@@ -53,28 +47,11 @@ This ensures:
 ```mermaid
 graph TD
 
-A[User Query] --> B[Electron + React UI]
-B --> C[FastAPI Backend]
+A[GPS Device / Simulator] --> B[Backend API]
+B --> C[(MongoDB Database)]
 
-C --> D[MDR Orchestrator]
-
-%% Ingestion
-D --> E[Document Parser]
-E --> F[Semantic Chunker]
-F --> G[Embedding Engine]
-
-%% Storage
-G --> H[(FAISS Vector DB)]
-G --> I[(SQLite Metadata)]
-
-%% Retrieval
-D --> J[Hybrid Search Engine]
-J --> H
-J --> K[Context Builder]
-
-%% Inference
-K --> L[Local LLM Engine]
-L --> C
+B --> D[API Layer]
+D --> E[Client / Dashboard]
 ```
 
 ---
@@ -82,89 +59,55 @@ L --> C
 ## ⚙️ Tech Stack
 
 ### Backend
-- FastAPI
-- Python
-- Uvicorn
+- Node.js
+- Express.js
 
-### AI / RAG
-- LangChain / LlamaIndex
-- SentenceTransformers
-- FAISS (Vector DB)
-- Local LLM (Ollama / GGUF models)
+### Database
+- MongoDB (Mongoose)
 
-### Desktop App
-- Electron.js
-- React.js
+### Simulation
+- Custom Node.js script (Axios-based)
 
-### Storage
-- SQLite (metadata)
-- FAISS (embeddings)
-
-### DevOps / Infra
-- Docker
-- GitHub Actions
+### Tools
+- Postman (API testing)
 
 ---
 
 ## 📁 Project Structure
 
 ```
-project-macrodata/
+gps_tracker/
 ├── backend/
-│   ├── main.py
+│   ├── server.js
+│   ├── db.js
+│   ├── models/
 │   ├── routes/
-│   ├── services/
-│   │   ├── ingestion.py
-│   │   ├── chunking.py
-│   │   ├── embedding.py
-│   │   ├── retrieval.py
-│   │   └── llm.py
-│   ├── db/
-│   │   ├── vector_store.py
-│   │   └── metadata.db
-│   └── config.py
 │
-├── frontend/
-│   ├── src/
-│   └── public/
+├── simulator/
+│   ├── simulator.js
 │
-├── electron/
-│   ├── main.js
-│   └── preload.js
-│
-├── data/
-│   └── documents/
-│
-├── docker/
 ├── .env
-├── requirements.txt
+├── .gitignore
 └── README.md
 ```
 
 ---
 
-## 🔁 MDR Pipeline (Core Engine)
+## 🔄 System Workflow
 
-### Step 1 — Ingestion
-- Accepts raw documents
-- Extracts text and metadata
+### Step 1 — Data Generation
+- GPS coordinates are generated via simulator or device
 
-### Step 2 — Chunking
-- Splits data into semantically meaningful chunks
-- Preserves context boundaries
+### Step 2 — Data Ingestion
+- Data is sent to backend via API
 
-### Step 3 — Embedding
-- Converts chunks into vector representations
-- Stored in FAISS
+### Step 3 — Storage
+- Stored in MongoDB with timestamp
 
 ### Step 4 — Retrieval
-- Hybrid search:
-  - Dense vector similarity
-  - Keyword fallback (BM25)
-
-### Step 5 — Generation
-- Context injected into local LLM
-- Output constrained to retrieved sources
+- APIs return:
+  - Latest location
+  - Full location history
 
 ---
 
@@ -174,127 +117,130 @@ project-macrodata/
 
 ```bash
 git clone <repo-url>
-cd project-macrodata
+cd gps_tracker
 ```
 
 ---
 
-### 2. Backend Setup
+### 2. Setup Backend
 
 ```bash
 cd backend
-pip install -r requirements.txt
-uvicorn main:app --reload
-```
-
----
-
-### 3. Run Local LLM
-
-```bash
-ollama run mistral
-```
-
----
-
-### 4. Frontend Setup
-
-```bash
-cd frontend
 npm install
 npm start
 ```
 
 ---
 
-### 5. Launch Desktop App
+### 3. Setup Environment
+
+Create `.env` file:
+
+```
+PORT=5000
+MONGO_URI=mongodb://127.0.0.1:27017/gps_tracker
+```
+
+---
+
+### 4. Run Simulator
 
 ```bash
-cd electron
+cd simulator
 npm install
 npm start
 ```
 
 ---
 
-## 🔐 Environment Configuration
+## 🔌 API Endpoints
 
-Create `.env`:
+### 📍 Add Location
 
+```http
+POST /api/location
 ```
-APP_ENV=local
-VECTOR_DB_PATH=./data/faiss
-SQLITE_PATH=./data/metadata.db
-MODEL_NAME=local-llm
-MAX_CHUNK_SIZE=512
-TOP_K=5
+
+```json
+{
+  "latitude": 17.3850,
+  "longitude": 78.4867
+}
 ```
 
 ---
 
-## 📊 Evaluation Metrics
+### 📍 Get All Locations
 
-| Metric | Purpose |
-|------|--------|
-| Retrieval Accuracy | Quality of context fetched |
-| Latency | Response time |
-| Token Usage | Efficiency |
-| Groundedness | Hallucination control |
+```http
+GET /api/locations
+```
 
 ---
 
-## 🧪 Example Query Flow
+### 📍 Get Latest Location
 
-1. User uploads PDF
-2. System processes → chunks → embeds
-3. User asks:
-   ```
-   "Summarize key insights"
-   ```
-4. System:
-   - Retrieves relevant chunks
-   - Injects into LLM
-   - Returns grounded answer with references
+```http
+GET /api/location/latest
+```
+
+---
+
+## 🧪 Example Workflow
+
+1. Start backend server  
+2. Run simulator  
+3. GPS data sent every few seconds  
+4. Retrieve data via API  
+5. Visualize or analyze movement  
+
+---
+
+## 📊 Use Cases
+
+- Fleet tracking systems  
+- Delivery tracking  
+- Fitness tracking apps  
+- Location analytics  
 
 ---
 
 ## 🧩 Design Principles
 
-- **Offline-first**
-- **Explainable outputs**
-- **Modular architecture**
-- **Deterministic retrieval**
-- **Production-grade structure**
+- Simple and modular backend
+- Real-time data simulation
+- Scalable API structure
+- Clean separation of concerns
 
 ---
 
 ## 🚨 Limitations
 
-- Dependent on local hardware performance
-- Initial indexing latency for large datasets
-- Requires manual model management
+- No authentication system
+- No frontend visualization
+- Basic error handling
 
 ---
 
 ## 🔮 Future Enhancements
 
-- Multi-agent RAG workflows
-- GPU acceleration support
-- Incremental indexing
-- Real-time document sync
-- Advanced observability dashboard
+- 🗺️ Map-based UI (Google Maps / Leaflet)
+- 🔐 User authentication
+- 📡 WebSocket real-time updates
+- 📊 Analytics dashboard
+- 📱 Mobile integration
 
 ---
 
 ## 🎯 Final Note
 
-This project is built as a **systems-level engineering artifact**, not a demo.
+This project is built as a **backend system prototype** for real-time tracking applications.
 
 It demonstrates:
-- Distributed thinking
-- AI system design
-- Production readiness
-- Real-world applicability
+- API design
+- Database integration
+- Real-time data handling
+- System-level thinking
 
 ---
 
@@ -306,8 +252,6 @@ MIT License
 
 ## 🤝 Contributions
 
-Pull requests are welcome. For major changes, open an issue first to discuss design decisions.
+Pull requests are welcome. Open an issue for major changes.
 
 ---
-````
-
